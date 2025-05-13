@@ -5,23 +5,23 @@ from googleapiclient.discovery import build
 
 # Carrega API_KEY de .env
 load_dotenv()
-API_KEY    = os.getenv('YOUTUBE_API_KEY')
-CHANNEL_ID = 'UCB_qr75-ydFVKSF9Dmo6izg'
+API_KEY     = os.getenv('YOUTUBE_API_KEY')
+PLAYLIST_ID = 'PLfoNZDHitwjUv0pjTwlV1vzaE0r7UDVDR'
 
-def get_highlight_video_ids(youtube, channel_id):
+def get_playlist_video_ids(youtube, playlist_id):
     ids, token = [], None
     while True:
-        resp = youtube.search().list(
+        resp = youtube.playlistItems().list(
             part='snippet',
-            channelId=channel_id,
-            q='highlight',
-            type='video',
-            #Garante que na puxada da API pegue só videos de janeiro de 2024 até dezembro de 2024
-            publishedAfter='2024-01-01T00:00:00Z',
-            publishedBefore='2025-01-01T00:00:00Z',  
+            playlistId=playlist_id,
+            maxResults=50,
             pageToken=token
         ).execute()
-        ids += [i['id']['videoId'] for i in resp['items']]
+        # cada item tem resourceId.videoId
+        ids += [
+            item['snippet']['resourceId']['videoId']
+            for item in resp['items']
+        ]
         token = resp.get('nextPageToken')
         if not token:
             break
@@ -48,16 +48,20 @@ def get_videos_details(youtube, ids):
 
 def main():
     youtube = build('youtube', 'v3', developerKey=API_KEY)
-    ids     = get_highlight_video_ids(youtube, CHANNEL_ID)
+    ids     = get_playlist_video_ids(youtube, PLAYLIST_ID)
     data    = get_videos_details(youtube, ids)
+    
 
-    # Cria DataFrame
-    dataset = pd.DataFrame(data)
-
-    # Gera CSV
-    output_file = 'f1_highlights_2024.csv'
-    dataset.to_csv(output_file, index=False, encoding='utf-8-sig')
-    print(f"✅ CSV gerado: {output_file}")
+    # Cria DataFrame e exporta CSV
+    df = pd.DataFrame(data)
+    # depois de criar o df com todas as colunas, inclusive publishedAt:
+    df['publishedAt'] = pd.to_datetime(df['publishedAt'])
+    df = df[
+        (df['publishedAt'] >= '2024-01-01') &
+        (df['publishedAt'] <  '2025-01-01')
+    ]
+    df.to_csv('f1_highlights_playlist.csv', index=False, encoding='utf-8-sig')
+    print("✅ CSV gerado: f1_highlights_playlist.csv")
 
 if __name__ == '__main__':
     main()
