@@ -42,8 +42,6 @@ Ao exportar um CSV:
 1. **Desempenho otimizado**: o Power BI lê um arquivo local, sem sobrecarga de requisições HTTP.  
 2. **Tratamento prévio de dados**: todas as validações e ajustes (tipos, nomes de colunas, ordenações) são feitos no Python, garantindo que o CSV chegue “pronto para uso”.
 
-Dessa forma, você ganha velocidade nas consultas e mais controle sobre a qualidade dos dados importados.
-
 
 ## Decisões Técnicas 
 - Python + Pandas: Usei para facilitar a manipulação de tabelas e conversão para CSV
