@@ -19,7 +19,10 @@ Este script consome a YouTube Data API v3, filtra vídeos de "highlights" da tem
    cd seu-repo
 
 2. Este código está usando o .env para deixar a API utilizada bem mais segura 
-    **Crie um .env** 
+    **Atenção** 
+    Eu já coloquei o .env por padrão funcionando e enviei o mesmo para o repositório ,mas o correto não é para isso acontecer por ser um arquivo que geralmente mantém o coração do projeto. Quando clonar o repositório ele já irá vir com ele. Se não vier segue o passo abaixo 
+    
+    **Crie .env** 
     Ao criar o .env, colocar o seguinte lá dentro YOUTUBE_API_KEY = "AIzaSyDkskors7j22HbgwddSz1hZz3pg90IfnWE" -> Chave API utilizada
 
 3. **Instale as dependências**
@@ -43,11 +46,11 @@ Dessa forma, você ganha velocidade nas consultas e mais controle sobre a qualid
 
 
 ## Decisões Técnicas 
-    - Python + Pandas: Usei para facilitar a manipulação de tabelas e conversão para CSV
-    - Paginação manual: A API retorna até 50 itens por chamada, então implementei um loop com pageToken para trazer todos os highlights 2024 
-    - .env + python-dotenv: Segura a chave da API longe do código e facilita o setup por outros devs 
+- Python + Pandas: Usei para facilitar a manipulação de tabelas e conversão para CSV
+- Paginação manual: A API retorna até 50 itens por chamada, então implementei um loop com pageToken para trazer todos os highlights 2024 
+- .env + python-dotenv: Segura a chave da API longe do código e facilita o setup por outros devs 
 
 ## Desafios Enfrentados 
-    - Limite de itens por requisição: Precisei particionar as chamadas de vídeo até 50 lotes 
-    - Formato de datas: A API retorna publishedAt em ISO 8601, então mantive o padrão para facilitar o parsing no BI. 
-    - Ausência de dislike: a API deixou de expor esse campo, então removi do payload final. 
+- Limite de itens por requisição: Precisei particionar as chamadas de vídeo até 50 lotes 
+- Formato de datas: A API retorna publishedAt em ISO 8601, então mantive o padrão para facilitar o parsing no BI. 
+- Ausência de dislike: a API deixou de expor esse campo, então removi do payload final. 
