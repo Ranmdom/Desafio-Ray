@@ -1,54 +1,127 @@
-# Desafio Técnico - Consumo de API + Visualização de dados
+# Desafio Técnico - Pipeline ETL + Dashboard de F1 Highlights 2024
 
+Este projeto implementa um **pipeline ETL completo** e um **dashboard interativo** para analisar os vídeos de highlights da temporada 2024 da Fórmula 1:
 
-# F1 Highlights CSV Exporter
+1. **ETL Pipeline (`pipeline.py`)**
 
-Este script consome a YouTube Data API v3, filtra vídeos de "highlights" da temporada 2024 do canal oficial da F1, e exporta um CSV para você importar no excel ou power BI
+   * Extrai vídeos de uma playlist do YouTube (API v3).
+   * Filtra apenas publicações de 2024.
+   * Enriquecimento: coleta estatísticas (views, likes, comentários).
+   * Carrega (upsert) em tabela `f1_highlights` no Supabase/Postgres.
 
-## Pré-requisitos
+2. **Dashboard Interativo (`dashboard.py`)**
 
-- Python 3.7+
-- Conta no Google Cloud com YouTube Data API v3 habilitada
-- Variável de ambiente `YOUTUBE_API_KEY` configurada
+   * Consome dados da tabela `f1_highlights`.
+   * Apresenta KPIs e gráficos (Streamlit + Altair + Plotly).
+   * Filtros: data (calendário) e circuitos.
 
-## Passo a passo
+---
 
-1. **Clone este repositório**  
-   ```bash
-   git clone https://github.com/SEU_USUARIO/seu-repo.git
-   cd seu-repo
+## 1. Pipeline ETL (pipeline.py)
 
-2. Este código está usando o .env para deixar a API utilizada bem mais segura 
-    **Atenção** 
-    Eu já coloquei o .env por padrão funcionando e enviei o mesmo para o repositório ,mas o correto não é para isso acontecer por ser um arquivo que geralmente mantém o coração do projeto. Quando clonar o repositório ele já irá vir com ele. Se não vier segue o passo abaixo 
-    
-    **Crie .env** 
-    Ao criar o .env, colocar o seguinte lá dentro YOUTUBE_API_KEY = "AIzaSyDkskors7j22HbgwddSz1hZz3pg90IfnWE" -> Chave API utilizada
+### 📋 Descrição
 
-3. **Instale as dependências**
-    pip install google-api-python-client pandas python-dotenv
+O script `pipeline.py`:
 
-4. **Execute o Script** 
-    python exportF1.py
+* Configura log (Nível INFO).
+* Carrega variáveis de ambiente `YOUTUBE_API_KEY` e `SUPABASE_DB_URL`.
+* Extrai IDs de vídeos da playlist via `playlistItems.list()`, filtrando por `publishedAt` entre 2024-01-01 e 2024-12-31.
+* Obtém detalhes com `videos.list()` em batches de 50 IDs: `snippet` + `statistics`.
+* Constrói DataFrame Pandas com colunas:
 
+  * `videoId`, `title`, `publishedAt`, `viewCount`, `likeCount`, `commentCount`.
+* Upsert em Postgres:
 
-## Por que gerar um CSV em vez de conectar direto ao Power BI?
+  * Cria tabela `f1_highlights` se não existir.
+  * `INSERT ... ON CONFLICT (videoId) DO UPDATE` para manter dados atualizados.
 
-Conectar o Power BI diretamente à YouTube Data API pode:
-- Tornar a atualização de dados muito lenta ou sujeita a erros de timeout.
-- Trazer colunas mal formatadas, exigindo mais limpeza dentro do próprio Power BI.
+### 🚀 Pré-requisitos
 
-Ao exportar um CSV:
-1. **Desempenho otimizado**: o Power BI lê um arquivo local, sem sobrecarga de requisições HTTP.  
-2. **Tratamento prévio de dados**: todas as validações e ajustes (tipos, nomes de colunas, ordenações) são feitos no Python, garantindo que o CSV chegue “pronto para uso”.
+* Python 3.8+
+* Conta no Google Cloud com YouTube Data API v3 habilitada
+* Variáveis de ambiente:
 
+  ```dotenv
+  YOUTUBE_API_KEY="SUA_API_KEY"
+  SUPABASE_DB_URL="postgresql://user:senha@host:porta/database"
+  YOUTUBE_PLAYLIST_ID="ID_DA_PLAYLIST"  # opcional, default é playlist oficial F1
+  ```
 
-## Decisões Técnicas 
-- Python + Pandas: Usei para facilitar a manipulação de tabelas e conversão para CSV
-- Paginação manual: A API retorna até 50 itens por chamada, então implementei um loop com pageToken para trazer todos os highlights 2024 
-- .env + python-dotenv: Segura a chave da API longe do código e facilita o setup por outros devs 
+### ⚙️ Instalação e Execução
 
-## Desafios Enfrentados 
-- Limite de itens por requisição: Precisei particionar as chamadas de vídeo até 50 lotes 
-- Formato de datas: A API retorna publishedAt em ISO 8601, então mantive o padrão para facilitar o parsing no BI. 
-- Ausência de dislike: a API deixou de expor esse campo, então removi do payload final. 
+```bash
+git clone https://github.com/SEU_USUARIO/f1-pipeline-dashboard.git
+cd f1-pipeline-dashboard
+python -m venv venv
+source venv/bin/activate      # Linux/macOS
+venv\\Scripts\\activate     # Windows
+pip install -r requirements.txt
+python pipeline.py
+```
+
+> Ao final, a tabela `f1_highlights` estará atualizada no seu banco.
+
+### 🛠️ Detalhes Técnicos
+
+* **Logging**: `logging.basicConfig` com timestamps e níveis.
+* **Pagination**: loop até esgotar `nextPageToken`.
+* **SQLAlchemy**: executa comandos DDL e DML com `engine.begin()`.
+
+---
+
+## 2. Dashboard Streamlit (dashboard.py)
+
+### 📋 Descrição
+
+O `dashboard.py` consome `f1_highlights` e gera:
+
+* **Visão Rápida**: total de vídeos, views, likes, comentários e taxa de likes.
+* **Top 5 Highlights**: gráfico de barras horizontais.
+* **Evolução Mensal de Views**: linha temporal.
+* **Engajamento vs Views**: scatter plot.
+* **Crescimento de Engajamento**: gráfico de área mensal.
+* **Filtros**: seleção de período via calendário e filtro por circuitos.
+
+### 🚀 Pré-requisitos
+
+* **Mesmas variáveis** do pipeline (usa `SUPABASE_DB_URL`).
+* Instalar dependências:
+
+  ```bash
+  pip install streamlit pandas sqlalchemy altair plotly python-dotenv
+  ```
+
+### ▶️ Execução
+
+```bash
+streamlit run dashboard.py
+```
+
+Abra `http://localhost:8501`.
+
+---
+
+## 3. Como isso atende ao Desafio
+
+* **API Consumption**: pipeline via YouTube Data API.
+* **Data Manipulation**: Pandas + SQLAlchemy para aggregations e upsert.
+* **Visualization**: Streamlit com gráficos interativos e filtros.
+
+---
+
+## 4. Testes e Deploy
+
+* **Smoke Tests**: scripts em `tests/` validam pipeline e dashboard.
+* **Deploy**: Streamlit Cloud, Heroku ou Render configurado para rodar `pipeline.py` (cron) e `dashboard.py`.
+
+---
+
+## 🤝 Contribuições
+
+Fork, crie branches e abra PRs!
+
+---
+
+## 📄 Licença
+
+MIT
