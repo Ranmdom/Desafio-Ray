@@ -3,19 +3,6 @@
 Este repositório reúne todo o código necessário para extrair, transformar e carregar (ETL) dados de vídeos de highlights de Fórmula 1 (ano 2024) a partir de uma playlist do YouTube para um banco Supabase/Postgres.
 
 
-
----
-
-## Estrutura do Repositório
-
-/
-├── pipeline.py            # ETL completo: YouTube → Supabase/Postgres
-├── test\_env.py            # Verifica se o .env está sendo carregado corretamente
-├── test\_db.py             # Verifica conexão com o banco Supabase/Postgres
-└── README.md              # Este arquivo
-
----
-
 ## Pré-requisitos
 
 1. Python 3.8+
