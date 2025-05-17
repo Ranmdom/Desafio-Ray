@@ -1,127 +1,128 @@
-# Desafio Técnico - Pipeline ETL + Dashboard de F1 Highlights 2024
+# F1 Highlights ETL & Dashboard
 
-Este projeto implementa um **pipeline ETL completo** e um **dashboard interativo** para analisar os vídeos de highlights da temporada 2024 da Fórmula 1:
+Este repositório reúne todo o código necessário para extrair, transformar e carregar (ETL) dados de vídeos de highlights de Fórmula 1 (ano 2024) a partir de uma playlist do YouTube para um banco Supabase/Postgres.
 
-1. **ETL Pipeline (`pipeline.py`)**
 
-   * Extrai vídeos de uma playlist do YouTube (API v3).
-   * Filtra apenas publicações de 2024.
-   * Enriquecimento: coleta estatísticas (views, likes, comentários).
-   * Carrega (upsert) em tabela `f1_highlights` no Supabase/Postgres.
-
-2. **Dashboard Interativo (`dashboard.py`)**
-
-   * Consome dados da tabela `f1_highlights`.
-   * Apresenta KPIs e gráficos (Streamlit + Altair + Plotly).
-   * Filtros: data (calendário) e circuitos.
 
 ---
 
-## 1. Pipeline ETL (pipeline.py)
+## Estrutura do Repositório
 
-### 📋 Descrição
+/
+├── pipeline.py            # ETL completo: YouTube → Supabase/Postgres
+├── test\_env.py            # Verifica se o .env está sendo carregado corretamente
+├── test\_db.py             # Verifica conexão com o banco Supabase/Postgres
+└── README.md              # Este arquivo
 
-O script `pipeline.py`:
+---
 
-* Configura log (Nível INFO).
-* Carrega variáveis de ambiente `YOUTUBE_API_KEY` e `SUPABASE_DB_URL`.
-* Extrai IDs de vídeos da playlist via `playlistItems.list()`, filtrando por `publishedAt` entre 2024-01-01 e 2024-12-31.
-* Obtém detalhes com `videos.list()` em batches de 50 IDs: `snippet` + `statistics`.
-* Constrói DataFrame Pandas com colunas:
+## Pré-requisitos
 
-  * `videoId`, `title`, `publishedAt`, `viewCount`, `likeCount`, `commentCount`.
-* Upsert em Postgres:
+1. Python 3.8+
+2. Conta no Supabase com tabela `public.f1_highlights`.
+3. Chave de API do YouTube (YouTube Data API v3).
+4. Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 
-  * Cria tabela `f1_highlights` se não existir.
-  * `INSERT ... ON CONFLICT (videoId) DO UPDATE` para manter dados atualizados.
+   ```
+   YOUTUBE_API_KEY=AIza...
+   SUPABASE_DB_URL=postgresql://<usuário>:<senha>@<host>:5432/<database>
+   YOUTUBE_PLAYLIST_ID=<ID_da_playlist_YouTube>
+   ```
 
-### 🚀 Pré-requisitos
+---
 
-* Python 3.8+
-* Conta no Google Cloud com YouTube Data API v3 habilitada
-* Variáveis de ambiente:
+## Instalação
 
-  ```dotenv
-  YOUTUBE_API_KEY="SUA_API_KEY"
-  SUPABASE_DB_URL="postgresql://user:senha@host:porta/database"
-  YOUTUBE_PLAYLIST_ID="ID_DA_PLAYLIST"  # opcional, default é playlist oficial F1
-  ```
+1. Clone este repositório e entre na pasta:
 
-### ⚙️ Instalação e Execução
+   ```
+   git clone https://github.com/SEU_USUARIO/SEU_REPO.git
+   cd SEU_REPO
+   ```
+
+2. Crie e ative um ambiente virtual:
+
+   * Windows
+
+     ```
+     python -m venv venv
+     .\venv\Scripts\activate
+     ```
+   * macOS/Linux
+
+     ```
+     python -m venv venv
+     source venv/bin/activate
+     ```
+
+3. Instale as dependências:
+
+   ```
+   pip install python-dotenv pandas google-api-python-client SQLAlchemy psycopg2-binary streamlit streamlit-option-menu altair plotly
+
+   ```
+
+---
+
+## Validando o Ambiente
+
+### 1. Verificar variáveis de ambiente
 
 ```bash
-git clone https://github.com/SEU_USUARIO/f1-pipeline-dashboard.git
-cd f1-pipeline-dashboard
-python -m venv venv
-source venv/bin/activate      # Linux/macOS
-venv\\Scripts\\activate     # Windows
-pip install -r requirements.txt
+python test_env.py
+```
+
+Saída esperada:
+
+```
+arquivo .env encontrado em: /caminho/para/.env
+load_dotenv retornou: True
+SUPABASE_DB_URL = postgresql://...
+```
+
+### 2. Testar conexão ao banco
+
+```bash
+python test_db.py
+```
+
+Saída esperada:
+
+```
+Conexão OK: [(1,)]
+```
+
+---
+
+## ETL: pipeline.py
+
+Este script faz todo o pipeline ETL:
+
+1. Lê variáveis de ambiente.
+2. Puxa IDs de vídeos de 2024 de uma playlist do YouTube.
+3. Obtém detalhes (views, likes, comentários, localização, piloto, região).
+4. Upsert na tabela `public.f1_highlights`.
+5. Cria materialized views em schema `reporting`:
+   * `f1_monthly_summary`
+
+Como rodar:
+
+```
 python pipeline.py
 ```
 
-> Ao final, a tabela `f1_highlights` estará atualizada no seu banco.
-
-### 🛠️ Detalhes Técnicos
-
-* **Logging**: `logging.basicConfig` com timestamps e níveis.
-* **Pagination**: loop até esgotar `nextPageToken`.
-* **SQLAlchemy**: executa comandos DDL e DML com `engine.begin()`.
-
 ---
 
-## 2. Dashboard Streamlit (dashboard.py)
+## Dashboard em PowerBI:
 
-### 📋 Descrição
 
-O `dashboard.py` consome `f1_highlights` e gera:
+* **Overview** – KPIs, smart narrative, linha do tempo e top 5 circuitos
+* **Evolução Mensal** – coluna de vídeos, área de taxa de likes, matrix por circuito e gráfico de crescimento no ano
 
-* **Visão Rápida**: total de vídeos, views, likes, comentários e taxa de likes.
-* **Top 5 Highlights**: gráfico de barras horizontais.
-* **Evolução Mensal de Views**: linha temporal.
-* **Engajamento vs Views**: scatter plot.
-* **Crescimento de Engajamento**: gráfico de área mensal.
-* **Filtros**: seleção de período via calendário e filtro por circuitos.
+Vou deixar o arquivo do projeto no github, mas por precaução também vou mandar via e-mail
 
-### 🚀 Pré-requisitos
 
-* **Mesmas variáveis** do pipeline (usa `SUPABASE_DB_URL`).
-* Instalar dependências:
+**Observação:** Geralmente não se deve em hipotese alguma subir o .env no github, por se tratar do coração do projeto, porém para vocês obterem os dados, eu precisei subir o .env.
 
-  ```bash
-  pip install streamlit pandas sqlalchemy altair plotly python-dotenv
-  ```
 
-### ▶️ Execução
 
-```bash
-streamlit run dashboard.py
-```
-
-Abra `http://localhost:8501`.
-
----
-
-## 3. Como isso atende ao Desafio
-
-* **API Consumption**: pipeline via YouTube Data API.
-* **Data Manipulation**: Pandas + SQLAlchemy para aggregations e upsert.
-* **Visualization**: Streamlit com gráficos interativos e filtros.
-
----
-
-## 4. Testes e Deploy
-
-* **Smoke Tests**: scripts em `tests/` validam pipeline e dashboard.
-* **Deploy**: Streamlit Cloud, Heroku ou Render configurado para rodar `pipeline.py` (cron) e `dashboard.py`.
-
----
-
-## 🤝 Contribuições
-
-Fork, crie branches e abra PRs!
-
----
-
-## 📄 Licença
-
-MIT
